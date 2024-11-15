@@ -1,4 +1,7 @@
 import os
+import requests
+import json
+import base64
 from extract import extractData
 from dotenv import load_dotenv
 from pyspark.sql import SparkSession
@@ -9,21 +12,24 @@ os.environ["JAVA_HOME"] = "/opt/homebrew/opt/openjdk@11/libexec/openjdk.jdk/Cont
 os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
 print(os.environ["JAVA_HOME"])
 
-# Retrieve Databricks environment variables
+# Load environment variables
 load_dotenv()
-server_h = os.getenv("SERVER_HOSTNAME")  # Example: 'adb-1234567.89.azuredatabricks.net'
-access_token = os.getenv("ACCESS_TOKEN")  # Your Databricks API token
+server_h = os.getenv("SERVER_HOSTNAME")
+access_token = os.getenv("ACCESS_TOKEN")
+FILESTORE_PATH = "dbfs:/FileStore/nd191_assignment11"
+headers = {'Authorization': 'Bearer %s' % access_token}
+url = "https://"+server_h+"/api/2.0"
 
-# # Ensure the variables are set
-# if not server_h or not access_token:
-#     raise ValueError("Databricks credentials (SERVER_HOSTNAME and ACCESS_TOKEN) must be set in the environment variables.")
+# Specify local file and target DBFS path
+local_file_path = "data/Impact_of_Remote_Work_on_Mental_Health.csv"  # Local CSV file path
+dbfs_path = FILESTORE_PATH + "/Impact_of_Remote_Work_on_Mental_Health.csv"  # The target path in DBFS
 
-# # Set the headers and base URL for API calls
-# headers = {'Authorization': f'Bearer {access_token}'}
-# url = f"https://{server_h}/api/2.0"
-# print(f"Databricks URL: {url}")
+# Set the headers and base URL for API calls
+headers = {'Authorization': f'Bearer {access_token}'}
+url = f"https://{server_h}/api/2.0"
+print(f"Databricks URL: {url}")
 
-# Use the token in your Spark session
+# Use the token in the Spark session
 spark = SparkSession.builder \
     .appName("Spark App") \
     .config("spark.databricks.token", access_token) \
@@ -46,21 +52,48 @@ def transformData(file_path):
                          'Access_to_Mental_Health_Resources')
     
     # Convert 'Access_to_Mental_Health_Resources' to boolean
-    df_clean = df_clean.withColumn(
-        'Access_to_Mental_Health_Resources', 
-        when(col('Access_to_Mental_Health_Resources') == 'Yes', True).otherwise(False)
-    )
+    df_clean = df_clean.withColumn('Access_to_Mental_Health_Resources', 
+                                   when(col('Access_to_Mental_Health_Resources') == 'Yes', True).otherwise(False))
     
     # Convert 'Age', 'Years_of_Experience', and 'Hours_Worked_Per_Week' to numeric types
     df_clean = df_clean.withColumn('Age', col('Age').cast('double'))
     df_clean = df_clean.withColumn('Years_of_Experience', col('Years_of_Experience').cast('double'))
     df_clean = df_clean.withColumn('Hours_Worked_Per_Week', col('Hours_Worked_Per_Week').cast('double'))
-    
-    # Drop rows with any null values
     df_clean = df_clean.dropna()
-    
-    print("Data transformed successfully.")
-    
+
+    print("Data transformed successfully.")    
     return df_clean
 
+def perform_query(path, headers, data={}):
+    session = requests.Session()
+    resp = session.request('POST', url + path, 
+                           data=json.dumps(data), 
+                           verify=True, 
+                           headers=headers)
+    return resp.json()
+
+def loadDataToDBFS(pathLocal, pathDBFS, headers):
+    # Check if the local file exists
+    if not os.path.exists(pathLocal):
+        print(f"Error: The file {pathLocal} does not exist.")
+        return
+
+    # Open and read the file content
+    with open(pathLocal, 'rb') as file:
+        content = file.read()
+    
+    # Create the file in DBFS
+    create_data = {'path': pathDBFS, 'overwrite': True}
+    handle = perform_query('/dbfs/create', headers, data=create_data)['handle']
+    
+    # Upload content in chunks
+    for i in range(0, len(content), 2**20):
+        chunk = base64.standard_b64encode(content[i:i+2**20]).decode()
+        perform_query('/dbfs/add-block', headers, data={'handle': handle, 'data': chunk})
+
+    # Close the file handle
+    perform_query('/dbfs/close', headers, data={'handle': handle})
+    print(f"File {pathLocal} uploaded to {pathDBFS} successfully.")
+
 transformData("data/Impact_of_Remote_Work_on_Mental_Health.csv")
+loadDataToDBFS(local_file_path, dbfs_path, headers)
