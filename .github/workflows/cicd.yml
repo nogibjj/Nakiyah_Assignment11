@@ -1,0 +1,61 @@
+name: CICD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      # Install OpenJDK 11
+      - name: Install OpenJDK 11
+        run: sudo apt-get install openjdk-11-jdk -y
+
+      # Set up environment variables
+      - name: Set JAVA_HOME and SPARK_LOCAL_IP
+        run: |
+          echo "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64" >> $GITHUB_ENV
+          echo "SPARK_LOCAL_IP=127.0.0.1" >> $GITHUB_ENV
+      
+      # Debugging step to confirm environment variables
+      - name: Print environment variables
+        run: printenv | grep 'JAVA_HOME\|SPARK_LOCAL_IP'
+
+      # Set up Python 3.12
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+
+      # Install dependencies
+      - name: Install packages
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+          SPARK_LOCAL_IP: 127.0.0.1
+        run: make install
+
+      # Run lint
+      - name: Lint code
+        run: make lint
+
+      # Run tests with environment variables
+      - name: Run tests
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+          SPARK_LOCAL_IP: 127.0.0.1
+        run: make test
+
+      # Run code formatting
+      - name: Format code
+        run: make format
+
+
+      # Deploy step (customize this as per your needs)
+      - name: Deploy
+        run: make deploy
