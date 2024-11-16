@@ -1,3 +1,11 @@
+from pyspark.sql import SparkSession
+
+# Initialize Spark session if it's not already initialized
+spark = SparkSession.builder \
+    .appName("Spark App") \
+    .config("spark.jars.packages", "io.delta:delta-core_2.12:1.2.1") \
+    .getOrCreate()
+    
 # Markdown file to log the SQL functions and queries
 def logQuery(query):
     with open("queryLog.md", "a") as file:
