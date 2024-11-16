@@ -26,15 +26,10 @@ dbfs_path = FILESTORE_PATH + "/Impact_of_Remote_Work_on_Mental_Health.csv"  # Th
 
 # Set the headers and base URL for API calls
 headers = {'Authorization': f'Bearer {access_token}'}
-url = f"https://{server_h}/api/2.0"
-print(f"Databricks URL: {url}")
+# print(f"Databricks URL: {url}")
 
 # Use the token in the Spark session
-spark = SparkSession.builder \
-    .appName("Spark App") \
-    .config("spark.databricks.token", access_token) \
-    .config("spark.jars.packages", "io.delta:delta-core_2.12:1.2.1") \
-    .getOrCreate()
+spark = SparkSession.builder.appName("Spark App").config("spark.jars.packages", "io.delta:delta-core_2.12:1.2.1").getOrCreate()
 
 # Transform and clean the data using Spark
 def transformData(file_path):
@@ -95,5 +90,43 @@ def loadDataToDBFS(pathLocal, pathDBFS, headers):
     perform_query('/dbfs/close', headers, data={'handle': handle})
     print(f"File {pathLocal} uploaded to {pathDBFS} successfully.")
 
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, when
+
+# Initialize Spark Session (already part of your script)
+spark = SparkSession.builder.appName("DeltaLake App") \
+    .config("spark.jars.packages", "io.delta:delta-core_2.12:1.2.1") \
+    .getOrCreate()
+
+def loadDataToDelta(file_path, delta_table_path):
+    try:
+        # Load the CSV file from DBFS
+        df = spark.read.csv(file_path, header=True, inferSchema=True)
+        print(f"File loaded successfully from: {file_path}")
+        
+        # Data transformation (reuse your transformData logic here if needed)
+        df_clean = df.select('Employee_ID', 'Age', 'Job_Role', 'Industry', 'Years_of_Experience', 
+                             'Work_Location', 'Hours_Worked_Per_Week', 'Mental_Health_Condition', 
+                             'Access_to_Mental_Health_Resources')
+
+        df_clean = df_clean.withColumn('Access_to_Mental_Health_Resources', 
+                                       when(col('Access_to_Mental_Health_Resources') == 'Yes', True).otherwise(False))
+        df_clean = df_clean.withColumn('Age', col('Age').cast('double'))
+        df_clean = df_clean.withColumn('Years_of_Experience', col('Years_of_Experience').cast('double'))
+        df_clean = df_clean.withColumn('Hours_Worked_Per_Week', col('Hours_Worked_Per_Week').cast('double'))
+        df_clean = df_clean.dropna()
+
+        # Write the DataFrame to Delta Lake
+        df_clean.write.format("delta").mode("overwrite").save(delta_table_path)
+        print(f"Data successfully written to Delta Lake at: {delta_table_path}")
+
+    except Exception as e:
+        print(f"Error while loading data to Delta Lake: {e}")
+
+# Define paths
+dbfs_csv_path = "dbfs:/FileStore/nd191_assignment11/Impact_of_Remote_Work_on_Mental_Health.csv"
+delta_table_path = "dbfs:/FileStore/nd191_assignment11/delta_table"
+
 transformData("data/Impact_of_Remote_Work_on_Mental_Health.csv")
 loadDataToDBFS(local_file_path, dbfs_path, headers)
+loadDataToDelta(dbfs_csv_path, delta_table_path)
