@@ -1,16 +1,7 @@
 import os
-import requests
-import json
-import base64
-from extract import extractData
 from dotenv import load_dotenv
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, when
-
-# Set environment variables
-os.environ["JAVA_HOME"] = "/opt/homebrew/opt/openjdk@11/libexec/openjdk.jdk/Contents/Home"
-os.environ["SPARK_LOCAL_IP"] = "127.0.0.1"
-print(os.environ["JAVA_HOME"])
 
 # Load environment variables
 load_dotenv()
@@ -19,15 +10,7 @@ access_token = os.getenv("ACCESS_TOKEN")
 FILESTORE_PATH = "dbfs:/FileStore/nd191_assignment11"
 headers = {'Authorization': 'Bearer %s' % access_token}
 url = "https://"+server_h+"/api/2.0"
-
-# Specify local file and target DBFS path
-local_file_path = "data/Impact_of_Remote_Work_on_Mental_Health.csv"  # Local CSV file path
-abs_file_path = "/Workspace/Users/nakiyahdhariwala98@hotmail.com/Nakiyah_Assignment11/data/Impact_of_Remote_Work_on_Mental_Health.csv"
 dbfs_path = FILESTORE_PATH + "/Impact_of_Remote_Work_on_Mental_Health.csv"  # The target path in DBFS
-
-# Set the headers and base URL for API calls
-headers = {'Authorization': f'Bearer {access_token}'}
-# print(f"Databricks URL: {url}")
 
 # Use the token in the Spark session
 spark = SparkSession.builder.appName("Spark App").config("spark.jars.packages", "io.delta:delta-core_2.12:1.2.1").getOrCreate()
@@ -60,42 +43,6 @@ def transformData(file_path):
     print("Data transformed successfully.")    
     return df_clean
 
-def perform_query(path, headers, data={}):
-    session = requests.Session()
-    resp = session.request('POST', url + path, 
-                           data=json.dumps(data), 
-                           verify=True, 
-                           headers=headers)
-    return resp.json()
-
-def loadDataToDBFS(pathLocal, pathDBFS, headers):
-    # Check if the local file exists
-    if not os.path.exists(pathLocal):
-        print(f"Error: The file {pathLocal} does not exist.")
-        return
-
-    # Open and read the file content
-    with open(pathLocal, 'rb') as file:
-        content = file.read()
-    
-    # Create the file in DBFS
-    create_data = {'path': pathDBFS, 'overwrite': True}
-    handle = perform_query('/dbfs/create', headers, data=create_data)['handle']
-    
-    # Upload content in chunks
-    for i in range(0, len(content), 2**20):
-        chunk = base64.standard_b64encode(content[i:i+2**20]).decode()
-        perform_query('/dbfs/add-block', headers, data={'handle': handle, 'data': chunk})
-
-    # Close the file handle
-    perform_query('/dbfs/close', headers, data={'handle': handle})
-    print(f"File {pathLocal} uploaded to {pathDBFS} successfully.")
-
-# Initialize Spark Session (already part of your script)
-spark = SparkSession.builder.appName("DeltaLake App") \
-    .config("spark.jars.packages", "io.delta:delta-core_2.12:1.2.1") \
-    .getOrCreate()
-
 def loadDataToDelta(file_path, delta_table_path):
     try:
         # Load the CSV file from DBFS
@@ -122,14 +69,8 @@ def loadDataToDelta(file_path, delta_table_path):
         print(f"Error while loading data to Delta Lake: {e}")
 
 # Define paths
-dbfs_csv_path = "dbfs:/FileStore/nd191_assignment11/Impact_of_Remote_Work_on_Mental_Health.csv"
 delta_table_path = "dbfs:/FileStore/nd191_assignment11/nd191_assignment11_delta_table"
-
 dbfs_file_path = "dbfs:/FileStore/nd191_assignment11/Impact_of_Remote_Work_on_Mental_Health.csv"
-# local_file_path = "data/Impact_of_Remote_Work_on_Mental_Health.csv"  # Local CSV file path
-# abs_file_path = "/Workspace/Users/nakiyahdhariwala98@hotmail.com/Nakiyah_Assignment11/data/Impact_of_Remote_Work_on_Mental_Health.csv"
 
 transformData(dbfs_file_path)
-
-# loadDataToDBFS(local_file_path, dbfs_path, headers)
-loadDataToDelta(dbfs_csv_path, delta_table_path)
+loadDataToDelta(dbfs_file_path, delta_table_path)

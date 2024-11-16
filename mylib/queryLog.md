@@ -46,3 +46,54 @@
     
 ```
 
+```sql
+
+        SELECT 
+            Region, 
+            COUNT(Employee_ID) AS Total_High_Stress_Employees
+        FROM employee_data_delta
+    
+```
+
+```sql
+
+        SELECT *
+        FROM employee_data_delta
+    
+```
+
+```sql
+
+        SELECT *
+        FROM employee_data_delta
+    
+```
+
+```sql
+
+        SELECT *
+        FROM employee_data_delta
+    
+```
+
+```sql
+
+        SELECT *
+        FROM employee_data_delta
+    
+```
+
+```sql
+
+        SELECT *
+        FROM employee_data_delta
+    
+```
+
+```sql
+
+        SELECT *
+        FROM employee_data_delta
+    
+```
+
