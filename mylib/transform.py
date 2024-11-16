@@ -22,6 +22,7 @@ url = "https://"+server_h+"/api/2.0"
 
 # Specify local file and target DBFS path
 local_file_path = "data/Impact_of_Remote_Work_on_Mental_Health.csv"  # Local CSV file path
+abs_file_path = "/Workspace/Users/nakiyahdhariwala98@hotmail.com/Nakiyah_Assignment11/data/Impact_of_Remote_Work_on_Mental_Health.csv"
 dbfs_path = FILESTORE_PATH + "/Impact_of_Remote_Work_on_Mental_Health.csv"  # The target path in DBFS
 
 # Set the headers and base URL for API calls
@@ -90,9 +91,6 @@ def loadDataToDBFS(pathLocal, pathDBFS, headers):
     perform_query('/dbfs/close', headers, data={'handle': handle})
     print(f"File {pathLocal} uploaded to {pathDBFS} successfully.")
 
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, when
-
 # Initialize Spark Session (already part of your script)
 spark = SparkSession.builder.appName("DeltaLake App") \
     .config("spark.jars.packages", "io.delta:delta-core_2.12:1.2.1") \
@@ -125,8 +123,13 @@ def loadDataToDelta(file_path, delta_table_path):
 
 # Define paths
 dbfs_csv_path = "dbfs:/FileStore/nd191_assignment11/Impact_of_Remote_Work_on_Mental_Health.csv"
-delta_table_path = "dbfs:/FileStore/nd191_assignment11/delta_table"
+delta_table_path = "dbfs:/FileStore/nd191_assignment11/nd191_assignment11_delta_table"
 
-transformData("data/Impact_of_Remote_Work_on_Mental_Health.csv")
-loadDataToDBFS(local_file_path, dbfs_path, headers)
+dbfs_file_path = "dbfs:/FileStore/nd191_assignment11/Impact_of_Remote_Work_on_Mental_Health.csv"
+# local_file_path = "data/Impact_of_Remote_Work_on_Mental_Health.csv"  # Local CSV file path
+# abs_file_path = "/Workspace/Users/nakiyahdhariwala98@hotmail.com/Nakiyah_Assignment11/data/Impact_of_Remote_Work_on_Mental_Health.csv"
+
+transformData(dbfs_file_path)
+
+# loadDataToDBFS(local_file_path, dbfs_path, headers)
 loadDataToDelta(dbfs_csv_path, delta_table_path)
