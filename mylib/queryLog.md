@@ -97,3 +97,10 @@
     
 ```
 
+```sql
+
+        SELECT *
+        FROM employee_data_delta
+    
+```
+

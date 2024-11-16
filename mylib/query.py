@@ -1,5 +1,3 @@
-from extract import extractData
-
 # Markdown file to log the SQL functions and queries
 def logQuery(query):
     with open("queryLog.md", "a") as file:
