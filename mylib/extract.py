@@ -2,8 +2,7 @@ import requests
 import os
 
 # Extracting data from GitHub
-def extractData(url="https://raw.githubusercontent.com/viraterletska/Impact_of_Remote_Work_on_Mental_Health/main/data/Impact_of_Remote_Work_on_Mental_Health.csv", 
-                 file_path="data/Impact_of_Remote_Work_on_Mental_Health.csv"):
+def extractData(file_path, url="https://raw.githubusercontent.com/viraterletska/Impact_of_Remote_Work_on_Mental_Health/main/data/Impact_of_Remote_Work_on_Mental_Health.csv"):
 
     # Ensure the directory exists
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -20,5 +19,3 @@ def extractData(url="https://raw.githubusercontent.com/viraterletska/Impact_of_R
     else:
         print(f"Failed to download file. Status code: {response.status_code}")
         return None
-
-extractData()
