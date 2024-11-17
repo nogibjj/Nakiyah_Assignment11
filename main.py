@@ -6,19 +6,7 @@ from dotenv import load_dotenv
 import os
 
 
-if __name__ == "__main__":
-    # Define paths
-    delta_table_path = "dbfs:/FileStore/nd191_assignment11/nd191_assignment11_delta_table"
-    dbfs_file_path = "dbfs:/FileStore/nd191_assignment11/Impact_of_Remote_Work_on_Mental_Health.csv"
-    path = "data/Impact_of_Remote_Work_on_Mental_Health.csv"
-    
-    current_directory = os.getcwd()
-    print(current_directory)
-    
-    extractData(path)
-
-    # queryData(delta_table_path)
-
+if __name__ == "__main__":    
     # Use the token in the Spark session
     spark = SparkSession.builder.appName("Spark App").config("spark.jars.packages", "io.delta:delta-core_2.12:1.2.1").getOrCreate()
 
@@ -36,6 +24,7 @@ if __name__ == "__main__":
     dbfs_file_path = "dbfs:/FileStore/nd191_assignment11/Impact_of_Remote_Work_on_Mental_Health.csv"
     local_file_path = "data/Impact_of_Remote_Work_on_Mental_Health.csv"
 
+    extractData(local_file_path)
     transformData(spark, dbfs_file_path)
     loadDataToDBFS(local_file_path, dbfs_path, headers)
     loadDataToDelta(spark, dbfs_file_path, delta_table_path)
