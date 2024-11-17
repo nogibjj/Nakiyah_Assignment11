@@ -1,15 +1,9 @@
-name: CICD
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-  workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      SERVER_HOSTNAME: ${{ secrets.SERVER_HOSTNAME }}
+      ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
     steps:
       - uses: actions/checkout@v3
       
@@ -40,7 +34,5 @@ jobs:
         run: make test
       - name: format
         run: make format
-      - name: run databricks job 
-        run: make job
       - name: deploy
         run: make deploy
