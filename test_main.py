@@ -10,8 +10,9 @@ import os
 load_dotenv()
 server_h = os.getenv("SERVER_HOSTNAME")
 access_token = os.getenv("ACCESS_TOKEN")
-FILESTORE_PATH = "dbfs:/FileStore/mini_project11"
+FILESTORE_PATH = "dbfs:/FileStore/nd191_assignment11"
 url = f"https://{server_h}/api/2.0"
+
 
 def check_filestore_path(path, headers): 
     try:
