@@ -5,12 +5,16 @@ import requests
 from dotenv import load_dotenv
 import os
 
+
 # Load environment variables
 load_dotenv()
 server_h = os.getenv("SERVER_HOSTNAME")
 access_token = os.getenv("ACCESS_TOKEN")
 FILESTORE_PATH = "dbfs:/FileStore/mini_project11"
 url = f"https://{server_h}/api/2.0"
+
+print(f"Server Hostname: {server_h}")
+
 
 # Function to check if a file path exists and auth settings still work
 def check_filestore_path(path, headers): 
