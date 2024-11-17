@@ -28,4 +28,6 @@ def test_databricks():
     assert check_filestore_path(FILESTORE_PATH, headers) is True
 
 if __name__ == "__main__":
+    print("Testing Databricks")
     test_databricks()
+    print("Test worked")
